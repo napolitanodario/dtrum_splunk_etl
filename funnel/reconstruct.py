@@ -29,7 +29,7 @@ def reconstruct_flows(raw: pd.DataFrame) -> FlowResult:
     session = normalize_actions(raw)
     step_breakdown, assignments = build_breakdown(session)
     matched = matched_actions_frame(session, assignments)
-    flows = build_flow_features(matched)
+    flows = build_flow_features(matched, step_breakdown=step_breakdown)
     return FlowResult(
         session=session,
         step_breakdown=step_breakdown,

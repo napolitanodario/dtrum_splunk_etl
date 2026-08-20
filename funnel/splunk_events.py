@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from config import FUNNEL_DAY_TZ
-from funnel.categories import CATEGORY_NAMES
+from funnel.categories import split_categorie_beni
 from funnel.reconstruct import FlowResult
 
 SCHEMA_VERSION = 3
@@ -162,10 +162,7 @@ def iter_flusso_events(result: FlowResult) -> Iterator[dict[str, Any]]:
         primary = session_ids[0] if session_ids else None
         e = enrich.get(primary, {}) if primary else {}
 
-        categories = [
-            cat for cat in CATEGORY_NAMES
-            if int(getattr(r, cat, 0) or 0) == 1
-        ]
+        categories = split_categorie_beni(getattr(r, "categorie_beni", None))
 
         # Global seq by chronological order of first occurrence.
         occ_sorted = occ.sort_values("actionStartTime", kind="mergesort")
