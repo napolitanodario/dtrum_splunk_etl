@@ -15,7 +15,7 @@ from config import FUNNEL_DAY_TZ
 from funnel.categories import split_categorie_beni
 from funnel.reconstruct import FlowResult
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 _ENRICH_COLS = ("browserType", "country", "city", "bounce")
 
 
