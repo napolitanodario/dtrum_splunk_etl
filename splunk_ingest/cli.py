@@ -1,10 +1,12 @@
-"""Command-line entrypoint for scheduled flusso v3 ingestion."""
+"""Command-line entrypoint for scheduled flusso ingestion."""
 
 from __future__ import annotations
 
 import argparse
 import logging
 from pathlib import Path
+
+from funnel.splunk_events import SCHEMA_VERSION
 
 from .config import IngestConfig
 from . import pipeline
@@ -22,7 +24,10 @@ def _load_config(path: str | None, cache_dir: str | None) -> IngestConfig:
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(
         prog="splunk_ingest",
-        description="Ship lean FlussoP1 events (schema v3, sourcetype :flusso) to Splunk HEC.",
+        description=(
+            f"Ship lean FlussoP1 events (schema v{SCHEMA_VERSION}, "
+            "sourcetype :flusso) to Splunk HEC."
+        ),
     )
     p.add_argument("command", choices=["run", "backfill"])
     p.add_argument("--config", help="TOML config file (default: SPLUNK_HEC_* env vars).")
@@ -58,7 +63,12 @@ def main(argv: list[str] | None = None) -> None:
         )
 
     total_f = sum(r["flussi"] for r in results)
-    log.info("Done: %d day(s), %d flussi (schema v3).", len(results), total_f)
+    log.info(
+        "Done: %d day(s), %d flussi (schema v%d).",
+        len(results),
+        total_f,
+        SCHEMA_VERSION,
+    )
 
 
 if __name__ == "__main__":

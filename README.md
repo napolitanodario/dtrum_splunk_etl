@@ -191,9 +191,11 @@ python3 -c "from cache import migrate_legacy_flat_cache; print(migrate_legacy_fl
 
 ## Splunk ingest
 
-Package `splunk_ingest/` ships lean **schema v3** flusso events to Splunk HEC
+Package `splunk_ingest/` ships lean **schema v5** flusso events to Splunk HEC
 (`sourcetype` `…:flusso` only). It reads a day from `.cache/usql/{YYYY-MM-DD}/`
 and reuses `funnel.reconstruct_flows` + `funnel.splunk_events.iter_flusso_events`.
+Schema v5 adds optional scalar target objects `salva` / `stampa` / `firma`
+(precomputed page timings for dashboards).
 
 ```bash
 cp splunk_ingest/config.example.toml splunk_ingest/prod.toml  # set url/token

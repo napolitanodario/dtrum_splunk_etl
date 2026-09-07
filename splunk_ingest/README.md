@@ -3,18 +3,46 @@
 Ship reconstructed lean funnel events to a Splunk HTTP Event Collector.
 
 - **Sourcetype:** `{prefix}:flusso` only (default `dtrum:funnel:flusso`)
-- **Schema:** version **3** (same payload as `export_splunk_flussi.py` / JSONL exports)
+- **Schema:** version **5** (same payload as `export_splunk_flussi.py` / JSONL exports)
 - **Source:** USQL day cache (`.cache/usql/{YYYY-MM-DD}/`), not live Dynatrace fetch
 
 ## Events produced
 
 | sourcetype | grain | notes |
 |---|---|---|
-| `dtrum:funnel:flusso` | one per reconstructed emission attempt | nested `steps[]` with actions; `blockStartTime` / `blockEndTime`; enrichment `browserType` / `country` / `city` / `bounce` |
+| `dtrum:funnel:flusso` | one per reconstructed emission attempt | nested `steps[]` with actions; `blockStartTime` / `blockEndTime`; enrichment `browserType` / `country` / `city` / `bounce`; optional target objects `salva` / `stampa` / `firma` |
 
 Each entry in `steps[].actions[]` includes `seq`, `sessionId`, `startTime`, `actionKey`, `actionType`, `duration`, plus Dynatrace timing breakdown in ms: `frontendTime`, `networkTime`, `serverTime` (omitted when null).
 
 No `:action` or `:action_dim` events are emitted.
+
+### Target performance objects (schema v5)
+
+Precomputed in ETL (`funnel.aggregate.build_flow_features`) so dashboards can use flat fields without summing nested actions at search time.
+
+| Object | Present when | KPI mapping (Flows Monitoring) |
+|---|---|---|
+| `salva` | `maxStep >= 6` | Qta / tempi fino al Salva |
+| `stampa` | `maxStep >= 7` | Qta / tempi fino a Stampa Documenti |
+| `firma` | `maxStep >= 8` | Qta / tempi fino a Firma |
+
+Each object (when present) has:
+
+| Field | Meaning |
+|---|---|
+| `elapsedSeconds` | Wall-clock: lastEnd − firstStart of the **pagina** group |
+| `machineSeconds` | Sum of frontend + network + server (seconds) |
+| `userSeconds` | `max(0, elapsed − machine)` |
+| `frontendSeconds` / `networkSeconds` / `serverSeconds` | Dynatrace timing sums for the page group |
+| `actionCount` | Deduped occurrences (`sessionId` + `startTime`) |
+
+Formula is **simplified** (no 10% overhead, no overlap factor, no Index page-load exclusion). Grouping is by **pagina** (same as the C# batch), not `stepIndex <= N`.
+
+Root `durationSeconds` / `activeSeconds` / `deadTimeSeconds` remain whole-flusso timings (including post-Salva steps) and must not be used for “fino al Salva” KPIs.
+
+**Qta** in Splunk = count of events where the object exists (e.g. `salva.elapsedSeconds` is set). Percentiles and duration buckets are computed at search time on those scalars.
+
+Days already shipped as schema v4 stay as-is until re-backfilled.
 
 ## Setup
 

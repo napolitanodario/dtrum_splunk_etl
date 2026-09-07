@@ -1,7 +1,7 @@
 """Orchestration: reconstruct a calendar day from USQL cache and ship to Splunk HEC.
 
 Shipping unit is the funnel calendar day (FUNNEL_DAY_TZ). A day is shipped once it is
-settled (day end + settlement_lag_hours is in the past). Payload is lean flusso schema v3
+settled (day end + settlement_lag_hours is in the past). Payload is lean flusso events
 only (sourcetype ``…:flusso``).
 """
 

@@ -1,4 +1,4 @@
-"""Splunk HEC ingestion for lean FlussoP1 events (schema v3, sourcetype :flusso only).
+"""Splunk HEC ingestion for lean FlussoP1 events (sourcetype :flusso only).
 
 Reads a calendar day from the USQL Parquet cache, reconstructs flussi via
 ``funnel.reconstruct_flows``, and ships HEC envelopes built from

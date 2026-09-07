@@ -1,4 +1,4 @@
-"""Build lean Splunk HEC flusso events (schema v3) from funnel FlowResult."""
+"""Build lean Splunk HEC flusso events from funnel FlowResult."""
 
 from __future__ import annotations
 
@@ -15,8 +15,17 @@ from config import FUNNEL_DAY_TZ
 from funnel.categories import split_categorie_beni
 from funnel.reconstruct import FlowResult
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 _ENRICH_COLS = ("browserType", "country", "city", "bounce")
+_TARGET_METRIC_KEYS = (
+    "elapsedSeconds",
+    "machineSeconds",
+    "userSeconds",
+    "frontendSeconds",
+    "networkSeconds",
+    "serverSeconds",
+    "actionCount",
+)
 
 
 def _i(v) -> Optional[int]:
@@ -71,6 +80,32 @@ def _clean(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
+def _target_object(value: Any) -> Optional[dict[str, Any]]:
+    """Normalize a target-page metrics dict for HEC; None if missing/empty."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, float) and math.isnan(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if not isinstance(value, dict):
+        return None
+    out: dict[str, Any] = {}
+    for key in _TARGET_METRIC_KEYS:
+        if key not in value or value[key] is None:
+            continue
+        if key == "actionCount":
+            iv = _i(value[key])
+            if iv is not None:
+                out[key] = iv
+        else:
+            fv = _f(value[key], 2)
+            if fv is not None:
+                out[key] = fv
+    return out or None
+
+
 def _day_from_flusso_id(flusso_id: str) -> Optional[str]:
     """Parse YYYYMMDD from flusso_id '{user}_{YYYYMMDD}_{n}' -> 'YYYY-MM-DD'."""
     parts = str(flusso_id).rsplit("_", 2)
@@ -103,7 +138,11 @@ def _session_enrichment(session: pd.DataFrame) -> dict[str, dict]:
 
 
 def iter_flusso_events(result: FlowResult) -> Iterator[dict[str, Any]]:
-    """Yield one lean Splunk v2 event dict per reconstructed flusso.
+    """Yield one lean Splunk flusso event dict per reconstructed flusso.
+
+    Schema v5 adds optional scalar target objects ``salva`` / ``stampa`` /
+    ``firma`` (precomputed in ``build_flow_features``) so dashboards avoid
+    summing nested ``steps[].actions[]`` at search time.
 
     Iterates ``matched`` grouped by ``flusso_id`` (one sort + groupby) instead of
     materializing a dict of per-flusso DataFrames.
@@ -249,6 +288,9 @@ def iter_flusso_events(result: FlowResult) -> Iterator[dict[str, Any]]:
             "javascriptErrors": _i(getattr(r, "js_errors", 0)) or 0,
             "totalErrors": _i(getattr(r, "total_errors", 0)) or 0,
             "hasError": bool(getattr(r, "has_error", False)),
+            "salva": _target_object(getattr(r, "salva", None)),
+            "stampa": _target_object(getattr(r, "stampa", None)),
+            "firma": _target_object(getattr(r, "firma", None)),
             "steps": steps_out,
         })
         yield event

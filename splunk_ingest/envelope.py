@@ -14,10 +14,10 @@ def _hash_user_id(value: Optional[str]) -> Optional[str]:
 
 
 def wrap_flusso_event(event: dict[str, Any], cfg) -> dict[str, Any]:
-    """Build one HEC envelope around a schema-v2 flusso body.
+    """Build one HEC envelope around a flusso event body.
 
     ``event`` is the payload produced by ``funnel.splunk_events.iter_flusso_events``
-    (already includes ``version: 3`` and ``eventId``).
+    (already includes ``version`` and ``eventId``).
     """
     body = copy.deepcopy(event)
     if getattr(cfg, "hash_user_id", False) and body.get("userId"):

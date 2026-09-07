@@ -1,4 +1,4 @@
-"""Export lean Splunk v3 flusso events from cached action chunks or Parquet."""
+"""Export lean Splunk flusso events (schema v5) from cached action chunks or Parquet."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ DEFAULT_CACHE = Path(".cache/usql")
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Export lean Splunk v3 flusso JSONL from cache or actions Parquet.",
+        description="Export lean Splunk flusso JSONL (schema v5) from cache or actions Parquet.",
     )
     parser.add_argument("--input", type=Path, help="Consolidated actions Parquet.")
     parser.add_argument(

@@ -23,6 +23,9 @@ logs/
 
 # ETL output artifacts
 output/
+analysis/output/
+analysis/logs/
+analysis/session_ids.txt
 
 # Generated / scratch data
 *.csv

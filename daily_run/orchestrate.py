@@ -11,7 +11,7 @@ from cache import day_cache_status, prune_usql_days
 from config import FUNNEL_DAY_TZ
 from main import run as fetch_usql_day
 from splunk_ingest.config import IngestConfig
-from splunk_ingest.pipeline import latest_settled_day, run_incremental
+from splunk_ingest.pipeline import latest_settled_day, run_backfill, run_incremental
 from splunk_ingest.state import State
 from utils import datetime_to_timestamp_ms_utc, prune_log_files
 
@@ -204,10 +204,21 @@ def run_daily(
 
     if not skip_ingest:
         if start <= end:
-            since = None
-            if not State(cfg.state_dir).last_settled_day():
-                since = start.isoformat()
-            ingest_results = run_incremental(cfg, since=since, dry_run=dry_run)
+            # Explicit --day must ship only that day (backfill). Incremental
+            # would walk from the watermark and fail on any incomplete gap.
+            if day:
+                ingest_results = run_backfill(
+                    cfg,
+                    start.isoformat(),
+                    end.isoformat(),
+                    force=True,
+                    dry_run=dry_run,
+                )
+            else:
+                since = None
+                if not State(cfg.state_dir).last_settled_day():
+                    since = start.isoformat()
+                ingest_results = run_incremental(cfg, since=since, dry_run=dry_run)
             result["ingest"] = ingest_results
             total_flussi = sum(r.get("flussi", 0) for r in ingest_results)
             log.info(

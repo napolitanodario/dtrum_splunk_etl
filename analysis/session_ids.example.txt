@@ -1,0 +1,4 @@
+# One Dynatrace userSessionId per line.
+# Lines starting with # are ignored. Copy to session_ids.txt and fill in.
+#
+# VIRTUAL-0123456789ABCDEF

@@ -16,7 +16,7 @@ _DEFAULT_LIMIT = 5_000
 
 def _quote_list(values: Iterable[str]) -> str:
     """Quote string values for a USQL IN (...) list."""
-    return ", ".join(f"'{v}'" for v in values)
+    return ", ".join("'" + str(v).replace("'", "''") + "'" for v in values)
 
 
 def _select_list(columns: Mapping[str, str]) -> str:
@@ -60,6 +60,41 @@ def discovery_query_test(
 ) -> str:
     """Diagnostic twin of discovery_query (same shape; kept for local tests)."""
     return discovery_query(name_prefixes, limit=limit)
+
+
+def session_lookup_query(
+        session_ids: Iterable[str],
+        limit: int = _DEFAULT_LIMIT,
+) -> str:
+    """Locate known sessions via ``usersession`` (one row per id).
+
+    Use this instead of ``discovery_query`` when the session ids are already
+    known. Discovery scans ``useraction`` by name prefix and cannot be used
+    over multi-week ranges. This query is bounded by the IN list, so the
+    adaptive client can start with a large window (days, not minutes).
+
+    Overlap filter on start/end keeps window-shrink aligned with the API
+    timeframe (sessions that start before a sub-window but end inside it).
+
+    ``userId`` must be set on the session (same as ``discovery_query``):
+    tagged at some point in the session, not necessarily on every action.
+    """
+    ids = _quote_list(session_ids)
+    return f"""
+SELECT
+  userSessionId AS sessionId,
+  startTime,
+  endTime,
+  userId,
+  duration
+FROM usersession
+WHERE userSessionId IN ({ids})
+  AND userId IS NOT NULL
+  AND userId != ''
+  AND startTime < {{end_ms}}
+  AND endTime > {{start_ms}}
+LIMIT {limit}
+""".strip()
 
 
 def session_actions_query(
